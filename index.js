@@ -1,6 +1,6 @@
 import * as puppeteer from "puppeteer";
 import delay from "./utils/delay.js";
-import { findCity } from "./repositories/CitiesRepository.js";
+import { findCity, createCity, } from "./repositories/CitiesRepository.js";
 import {
   createHoliday,
   findHoliday,
@@ -23,11 +23,7 @@ import fs from "fs/promises";
   });
 
   const filePath = "./files/ufs_processadas.txt";
-  const csvFilePath = "./files/feriados.csv";
   const ufsProcessadas = await lerArquivo(filePath);
-
-  // Write CSV header
-  await fs.writeFile(csvFilePath, "Dia,Mês,Ano,Nome,Estado,Município,Tipo\n", "utf8");
 
   for (let uf of ufList) {
     if (uf === "UF" || ufsProcessadas.includes(uf)) continue;
@@ -45,26 +41,50 @@ import fs from "fs/promises";
       });
     });
 
-    const feriados = feriadosRows.map((row) => ({
-      dia: +row[0].split("/")[0],
-      mes: +row[0].split("/")[1],
-      ano: +row[0].split("/")[2].substring(0, 4),
-      nome: `${row[0]} - ${row[2]}/${row[1]}`,
-      estado: row[1],
-      municipio: row[2],
-      tipo: row[3],
-    }));
+    const feriados = feriadosRows
+      .map((row) => ({
+        data: {
+          dia: +row[0].split("/")[0],
+          mes: +row[0].split("/")[1],
+          ano: +row[0].split("/")[2].substring(0, 4),
+        },
+        nome: `${row[0]} - ${row[2]}/${row[1]}`,
+        estado: row[1],
+        municipio: row[2],
+        tipo: row[3],
+      }))
+      .sort((a, b) => {
+        if (a.municipio < b.municipio) return -1;
+        if (a.municipio > b.municipio) return 1;
+        return 0;
+      });
 
+    let municipioAnterior = null;
+    let cities = [];
     for (const feriado of feriados) {
-      const { dia, mes, ano, nome, estado, municipio, tipo } = feriado;
+      const { dia, mes, ano } = feriado.data;
+      const { nome, municipio } = feriado;
 
-      // Append data to CSV file
-      const csvRow = `${dia},${mes},${ano},"${nome}",${estado},${municipio},${tipo}\n`;
-      await fs.appendFile(csvFilePath, csvRow, "utf8");
+      let cities = await findCity(uf, municipio);
+      
+      if (cities === undefined || cities.length === 0) {
+        console.log(`Cidade ${municipio} não encontrada para o estado ${uf}`);
+        cities = await createCity(municipio, uf);
+        cities = await findCity(uf, municipio);
+      }
+
+      const cityId = +cities[0].id;
+
+      console.log(municipioAnterior, municipio);
+
+      console.log(
+        `Cadastrando feriado ${nome} para a cidade ${municipio} - ${uf}`
+      );
+      await createHoliday(cityId, dia, mes, ano, nome, 2);
     }
-
     await fs.appendFile(filePath, `${uf}\n`, "utf8");
   }
+
 
   process.exit();
 })();
