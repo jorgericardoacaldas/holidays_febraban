@@ -73,7 +73,7 @@ import fs from "fs/promises";
         cities = await findCity(uf, municipio);
       }
 
-      const cityId = +cities[0].id;
+      const cityId = +cities[0].Id;
 
       console.log(municipioAnterior, municipio);
 

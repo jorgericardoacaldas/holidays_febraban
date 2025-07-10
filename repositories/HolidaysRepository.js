@@ -2,7 +2,7 @@ import db from '../config/database.js';
 
 export async function createHoliday(cityId, day, month, year, name, type) {
     const query = `
-        INSERT INTO services.holidays (created_at, status, city_id, day, month, year, name, type) values (now(), true, `+cityId+`,`+ day + `,`+ month + `,`+ year + `,"` + name + `",`+ type+`)
+        INSERT INTO sic.holidays (Created_At, Status, CityId, Day, Month, Year, Name, Type) values (now(), true, `+cityId+`,`+ day + `,`+ month + `,`+ year + `,"` + name + `",`+ type+`)
     `;
   
     const {rows} = await db.query(query);
@@ -12,8 +12,8 @@ export async function createHoliday(cityId, day, month, year, name, type) {
 
 export async function findHoliday(day, month, year, cityId) {
     const query = `
-      SELECT * FROM services.holidays
-      WHERE day = `+ day + ` AND month = `+ month +` AND year = `+ year +` AND city_id = ` + cityId;
+      SELECT * FROM sic.holidays
+      WHERE Day = `+ day + ` AND Month = `+ month +` AND Year = `+ year +` AND CityId = ` + cityId;
   
     const {rows} = await db.query(query);
   
